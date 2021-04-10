@@ -30,7 +30,7 @@ object BitlyClient {
     override def getShortUrl(longUrl: String): RIO[Clock, Shortened] = {
       val path = s"${basePath}/shorten"
       val request = basicRequest
-        .post(endpoint.path(path))
+        .post(endpoint.withPath(path))
         .auth
         .bearer(config.jwtToken)
         .contentType(MediaType.ApplicationJson)

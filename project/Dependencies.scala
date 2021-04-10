@@ -51,7 +51,7 @@ object Dependencies {
   }
 
   object STTP {
-    private val version = "2.2.8"
+    private val version = "2.2.9"
 
     val zioClient = "com.softwaremill.sttp.client" %% "async-http-client-backend-zio" % version
     val circe     = "com.softwaremill.sttp.client" %% "circe"                         % version
@@ -61,7 +61,7 @@ object Dependencies {
   }
 
   object Tapir {
-    private val version = "0.16.16"
+    private val version = "0.17.19"
 
     private val zio              = "com.softwaremill.sttp.tapir" %% "tapir-zio"                % version
     private val zioHttp4sServer  = "com.softwaremill.sttp.tapir" %% "tapir-zio-http4s-server"  % version

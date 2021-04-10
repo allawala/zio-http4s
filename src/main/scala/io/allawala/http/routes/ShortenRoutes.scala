@@ -4,16 +4,14 @@ import io.allawala.BitlyEnv
 import io.allawala.EvenMoreTapir._
 import io.allawala.http.ErrorInfo._
 import io.allawala.http.{ErrorInfo, ReqCtx}
-import io.allawala.httpclient.BitlyClient
 import io.allawala.model.Shortened
 import io.allawala.service.Bitly
 import org.http4s.HttpRoutes
+import sttp.tapir.generic.auto._
 import sttp.tapir.server.http4s.ztapir._
 import sttp.tapir.ztapir.ZEndpoint
-import zio.clock.Clock
+import zio.RIO
 import zio.interop.catz._
-import zio.logging.Logging
-import zio.{RIO, Task, URIO, ZIO}
 
 object ShortenRoutes extends Routes {
 
@@ -32,11 +30,11 @@ object ShortenRoutes extends Routes {
     override def endpoints: Seq[ZEndpoint[_, _, _]] = Seq(getShortenEndpoint)
   }
 
-  private val shortenRoute: URIO[BitlyEnv, HttpRoutes[Task]] =
-    ShortenApi.getShortenEndpoint.toRoutesR {
-      case (reqCtx, url) =>
-        Bitly.shortenUrl(url).mapToClientError(reqCtx)
-    }
+  val shortenRoute: HttpRoutes[RIO[BitlyEnv, *]] = ZHttp4sServerInterpreter.from(ShortenApi.getShortenEndpoint) { req =>
+    val (reqCtx, url) = req
+    Bitly.shortenUrl(url).mapToClientError(reqCtx)
+  }.toRoutes
 
-  override def routes: URIO[BitlyEnv, HttpRoutes[Task]] = shortenRoute
+  // TODO what would the method signature be now?
+  override def routes: HttpRoutes[RIO[BitlyEnv, *]] = shortenRoute
 }

@@ -1,11 +1,10 @@
 package io.allawala.http.routes
 
-import io.allawala.EvenMoreTapir.EndpointInput
-import io.allawala.EvenMoreTapir._
+import io.allawala.EvenMoreTapir.{EndpointInput, _}
 import io.allawala.http.ErrorInfo._
-import sttp.tapir.ztapir.ZEndpoint
 import sttp.model.StatusCode
-import zio.interop.catz._
+import sttp.tapir.ztapir.ZEndpoint
+import sttp.tapir.generic.auto._
 
 trait Api {
   def basePath: EndpointInput[Unit] = ""
