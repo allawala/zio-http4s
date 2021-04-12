@@ -8,7 +8,7 @@ import zio.clock.Clock
 import zio.interop.catz._
 import zio.{RIO, UIO}
 
-object HealthRoutes extends Routes {
+object HealthRoutes extends Routes[Any] {
   object HealthApi extends Api {
     override val basePath: EndpointInput[Unit] = "health"
 
@@ -18,8 +18,8 @@ object HealthRoutes extends Routes {
     override val endpoints: Seq[ZEndpoint[_, _, _]] = Seq(getHealthEndpoint)
   }
 
-  val healthRoute: HttpRoutes[RIO[Clock, *]] = ZHttp4sServerInterpreter.from(HealthApi.getHealthEndpoint)(_ => UIO.succeed("Ok")).toRoutes
+  val healthEndpoint: ZServerEndpoint[Any, Unit, Unit, String] =
+    HealthApi.getHealthEndpoint.zServerLogic(_ => UIO.succeed("Ok"))
 
-  // TODO what would the method signature be now?
-  override def routes: HttpRoutes[RIO[Clock, *]] = healthRoute
+  override def endpoints = List(healthEndpoint)
 }

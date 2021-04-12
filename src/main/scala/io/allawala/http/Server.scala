@@ -21,18 +21,27 @@ object Server {
   private val yaml: String = {
     import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
     import sttp.tapir.openapi.circe.yaml._
-    OpenAPIDocsInterpreter.toOpenAPI(
-      HealthRoutes.HealthApi.endpoints ++ ShortenRoutes.ShortenApi.endpoints,
-      "Get shortened urls", "1.0"
-    ).toYaml
+    OpenAPIDocsInterpreter
+      .toOpenAPI(
+        HealthRoutes.HealthApi.endpoints ++ ShortenRoutes.ShortenApi.endpoints,
+        "Get shortened urls",
+        "1.0"
+      )
+      .toYaml
   }
 
   private val appRoutes: HttpApp[RIO[BitlyEnv, *]] = {
 //    (ShortenRoutes.routes).orNotFound // This on its own works
-    (ShortenRoutes.shortenRoute <+> HealthRoutes.healthRoute <+> new SwaggerHttp4s(yaml).routes[RIO[BitlyEnv, *]]).orNotFound
-    // The one below is what i want to make work in the end, so that i can aggregate multiple rest api routes within each route module
-//    (ShortenRoutes.routes <+> HealthRoutes.routes <+> new SwaggerHttp4s(yaml).routes[RIO[BitlyEnv, *]]).orNotFound
+    val appRoutes = from(
+      ShortenRoutes.endpoints.map(_.widen[BitlyEnv]) ++ HealthRoutes.endpoints.map(_.widen[BitlyEnv])
+    ).toRoutes
+
+    val swaggerRoutes = new SwaggerHttp4s(yaml).routes[RIO[BitlyEnv, *]]
+
+    (appRoutes <+> swaggerRoutes).orNotFound
   }
+  // The one below is what i want to make work in the end, so that i can aggregate multiple rest api routes within each route module
+//    (ShortenRoutes.routes <+> HealthRoutes.routes <+> new SwaggerHttp4s(yaml).routes[RIO[BitlyEnv, *]]).orNotFound
 
   def finalHttpApp(conf: HttpServerConfig, app: HttpApp[RIO[BitlyEnv, *]]): HttpApp[RIO[BitlyEnv, *]] =
     RequestId.httpApp {
@@ -43,10 +52,10 @@ object Server {
 
   val runServer: ZIO[AppEnv, Throwable, Unit] = {
     for {
-      config                         <- getConfig[HttpServerConfig]
+      config                          <- getConfig[HttpServerConfig]
       implicit0(rts: Runtime[AppEnv]) <- ZIO.runtime[AppEnv]
-      ec                             <- ZIO.descriptor.map(_.executor.asEC)
-      app                            = appRoutes
+      ec                              <- ZIO.descriptor.map(_.executor.asEC)
+      app                              = appRoutes
       _ <-
         BlazeServerBuilder[RIO[BitlyEnv, *]](ec)
           .bindHttp(config.port, config.host)
