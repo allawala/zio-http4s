@@ -6,14 +6,9 @@ import io.allawala.http.ErrorInfo._
 import io.allawala.http.{ErrorInfo, ReqCtx}
 import io.allawala.model.Shortened
 import io.allawala.service.Bitly
-import org.http4s.HttpRoutes
 import sttp.tapir.generic.auto._
-import sttp.tapir.server.http4s.ztapir._
-import sttp.tapir.ztapir.ZEndpoint
-import zio.RIO
-import zio.interop.catz._
 
-object ShortenRoutes extends Routes {
+object ShortenRoutes extends Routes[BitlyEnv] {
 
   object ShortenApi extends Api {
     override def basePath: EndpointInput[Unit] = "api" / "v1.0"
@@ -30,11 +25,11 @@ object ShortenRoutes extends Routes {
     override def endpoints: Seq[ZEndpoint[_, _, _]] = Seq(getShortenEndpoint)
   }
 
-  val shortenRoute: HttpRoutes[RIO[BitlyEnv, *]] = ZHttp4sServerInterpreter.from(ShortenApi.getShortenEndpoint) { req =>
-    val (reqCtx, url) = req
-    Bitly.shortenUrl(url).mapToClientError(reqCtx)
-  }.toRoutes
+  val shortenEndpoint: ZServerEndpoint[BitlyEnv, (ReqCtx, String), ErrorInfo, Shortened] =
+    ShortenApi.getShortenEndpoint.zServerLogic {
+      case (reqCtx, url) =>
+        Bitly.shortenUrl(url).mapToClientError(reqCtx)
+    }
 
-  // TODO what would the method signature be now?
-  override def routes: HttpRoutes[RIO[BitlyEnv, *]] = shortenRoute
+  override def endpoints = List(shortenEndpoint)
 }

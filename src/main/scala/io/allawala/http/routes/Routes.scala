@@ -1,11 +1,10 @@
 package io.allawala.http.routes
 
-import org.http4s.HttpRoutes
-import zio.RIO
+import sttp.tapir.ztapir.ZServerEndpoint
 
 import scala.language.existentials
 
-trait Routes {
-  // To aggregate all the routes within a specific rest api sub path
-  def routes: HttpRoutes[RIO[_, *]]
+trait Routes[R] {
+  // To aggregate all the endpoints within a specific rest api sub path
+  def endpoints: List[ZServerEndpoint[R, _, _, _]]
 }
